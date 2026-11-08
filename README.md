@@ -9,6 +9,11 @@ npm.cmd run dev
 开发完在项目目录执行：
 ```
 git pull --rebase origin main
+```
+
+再执行：
+
+```
 git add .
 git commit -m "Add new feature"
 git push
