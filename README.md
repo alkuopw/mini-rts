@@ -18,3 +18,11 @@ git add .
 git commit -m "Add new feature"
 git push
 ```
+
+
+手机测试：
+```
+cd D:\mini-rts
+npm.cmd run dev -- --host 0.0.0.0
+```
+记下 Network 后面的地址。然后手机打开网址。
