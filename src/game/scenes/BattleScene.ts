@@ -81,8 +81,9 @@ export default class BattleScene extends Phaser.Scene {
 this.input.mouse?.disableContextMenu();
 
 this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+
   // 左键：选择单位，或者拖动地图
-  if (pointer.leftButtonDown()) {
+  if (pointer.button === 0) {
     const point = this.getMapPoint(pointer);
 
     const clickedUnit = [...this.units]
@@ -96,20 +97,30 @@ this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
     if (clickedUnit) {
       this.selectedUnit = clickedUnit;
       clickedUnit.setSelected(true);
+
       this.dragging = false;
     } else {
       this.selectedUnit = null;
+
       this.dragging = true;
       this.lastPointerX = pointer.x;
       this.lastPointerY = pointer.y;
     }
+
+    return;
   }
 
-  // 右键：让选中的单位移动
-  if (pointer.rightButtonDown() && this.selectedUnit) {
-    const point = this.getMapPoint(pointer);
-    this.selectedUnit.moveTo(point.x, point.y);
+  // 右键：移动当前选中的单位
+  if (pointer.button === 2) {
+    if (this.selectedUnit) {
+      const point = this.getMapPoint(pointer);
+
+      this.selectedUnit.setMoveTarget(point.x, point.y);
+    }
+
+    return;
   }
+
 });
 
 

@@ -13,7 +13,7 @@ export default class Unit extends Phaser.GameObjects.Container {
   private armed = false;
   private target: Phaser.Math.Vector2 | null = null;
 
-  private body: Phaser.GameObjects.Graphics;
+  private unitGraphics: Phaser.GameObjects.Graphics;
   private selectionRing: Phaser.GameObjects.Graphics;
 
   constructor(
@@ -32,8 +32,8 @@ export default class Unit extends Phaser.GameObjects.Container {
     this.selectionRing.setVisible(false);
     this.add(this.selectionRing);
 
-    this.body = scene.add.graphics();
-    this.add(this.body);
+    this.unitGraphics = scene.add.graphics();
+this.add(this.unitGraphics);
 
     this.drawBody();
 
@@ -46,24 +46,24 @@ export default class Unit extends Phaser.GameObjects.Container {
       ? 0xc94b42
       : 0x3979c8;
 
-    this.body.clear();
+    this.unitGraphics.clear();
 
     // 工人身体
-    this.body.fillStyle(0x222222, 1);
-    this.body.fillCircle(0, 0, 13);
+    this.unitGraphics.fillStyle(0x222222, 1);
+    this.unitGraphics.fillCircle(0, 0, 13);
 
-    this.body.fillStyle(color, 1);
-    this.body.fillCircle(0, 0, 10);
+    this.unitGraphics.fillStyle(color, 1);
+    this.unitGraphics.fillCircle(0, 0, 10);
 
-    this.body.fillStyle(0xffffff, 1);
-    this.body.fillCircle(0, -2, 3);
+    this.unitGraphics.fillStyle(0xffffff, 1);
+    this.unitGraphics.fillCircle(0, -2, 3);
 
     // 持枪状态：绘制枪械
     if (this.armed) {
-      this.body.fillStyle(0x252525, 1);
-      this.body.fillRect(-2, -12, 17, 5);
-      this.body.fillRect(11, -14, 4, 3);
-      this.body.fillRect(1, -7, 4, 7);
+      this.unitGraphics.fillStyle(0x252525, 1);
+      this.unitGraphics.fillRect(-2, -12, 17, 5);
+      this.unitGraphics.fillRect(11, -14, 4, 3);
+      this.unitGraphics.fillRect(1, -7, 4, 7);
     }
   }
 
@@ -104,9 +104,9 @@ export default class Unit extends Phaser.GameObjects.Container {
     ) < 20;
   }
 
-  moveTo(x: number, y: number) {
-    this.target = new Phaser.Math.Vector2(x, y);
-  }
+  setMoveTarget(x: number, y: number) {
+  this.target = new Phaser.Math.Vector2(x, y);
+}
 
   updateUnit(delta: number) {
     if (!this.target) return;
