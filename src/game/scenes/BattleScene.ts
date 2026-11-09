@@ -6,6 +6,7 @@ import WeaponPickup from '../entities/WeaponPickup';
 export default class BattleScene extends Phaser.Scene {
   private mapContainer!: Phaser.GameObjects.Container;
   private dragging = false;
+  private dragButton: number | null = null;
   private lastPointerX = 0;
   private lastPointerY = 0;
   private units: Unit[] = [];
@@ -82,7 +83,7 @@ this.input.mouse?.disableContextMenu();
 
 this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
 
-  // 左键：选择单位，或者拖动地图
+  // 左键：选择单位
   if (pointer.button === 0) {
     const point = this.getMapPoint(pointer);
 
@@ -90,19 +91,22 @@ this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       .reverse()
       .find(unit => unit.containsPoint(point.x, point.y));
 
-    if (this.selectedUnit) {
-      this.selectedUnit.setSelected(false);
-    }
-
     if (clickedUnit) {
+      if (this.selectedUnit) {
+        this.selectedUnit.setSelected(false);
+      }
+
       this.selectedUnit = clickedUnit;
       clickedUnit.setSelected(true);
 
       this.dragging = false;
-    } else {
-      this.selectedUnit = null;
+      this.dragButton = null;
 
+    } else {
+      // 点击空白地图：开始拖动，但不取消选中
       this.dragging = true;
+      this.dragButton = 0;
+
       this.lastPointerX = pointer.x;
       this.lastPointerY = pointer.y;
     }
@@ -110,13 +114,21 @@ this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
     return;
   }
 
-  // 右键：移动当前选中的单位
+  // 右键：移动选中的单位
   if (pointer.button === 2) {
+
     if (this.selectedUnit) {
       const point = this.getMapPoint(pointer);
 
       this.selectedUnit.setMoveTarget(point.x, point.y);
     }
+
+    // 右键同时允许拖动地图
+    this.dragging = true;
+    this.dragButton = 2;
+
+    this.lastPointerX = pointer.x;
+    this.lastPointerY = pointer.y;
 
     return;
   }
@@ -125,21 +137,29 @@ this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
 
 
     this.input.on('pointerup', () => {
-      this.dragging = false;
-    });
+
+  this.dragging = false;
+  this.dragButton = null;
+
+});
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!this.dragging || !pointer.isDown) return;
 
-      const dx = pointer.x - this.lastPointerX;
-      const dy = pointer.y - this.lastPointerY;
+  if (!this.dragging) return;
 
-      this.mapContainer.x += dx;
-      this.mapContainer.y += dy;
+  if (this.dragButton === 0 && !pointer.leftButtonDown()) return;
+  if (this.dragButton === 2 && !pointer.rightButtonDown()) return;
 
-      this.lastPointerX = pointer.x;
-      this.lastPointerY = pointer.y;
-    });
+  const dx = pointer.x - this.lastPointerX;
+  const dy = pointer.y - this.lastPointerY;
+
+  this.mapContainer.x += dx;
+  this.mapContainer.y += dy;
+
+  this.lastPointerX = pointer.x;
+  this.lastPointerY = pointer.y;
+
+});
 
     // 鼠标滚轮缩放
     this.input.on(
