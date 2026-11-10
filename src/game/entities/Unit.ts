@@ -117,10 +117,29 @@ private brakingDistance = 48;
 
   setMoveTarget(x: number, y: number) {
   this.target = new Phaser.Math.Vector2(x, y);
-}
-setMovePath(path: Phaser.Math.Vector2[]) {
-  this.movePath = path;
+
+  // 普通移动命令清除旧路径
+  this.movePath = [];
   this.pathIndex = 0;
+}
+
+setMovePath(path: Phaser.Math.Vector2[]) {
+  // 保存新路径
+  this.movePath = path.map(
+    point => new Phaser.Math.Vector2(point.x, point.y)
+  );
+
+  this.pathIndex = 0;
+
+  if (this.movePath.length === 0) {
+    this.target = null;
+    return;
+  }
+
+  // 最后一个节点就是最终目标
+  const lastPoint = this.movePath[this.movePath.length - 1];
+
+  this.target = lastPoint.clone();
 }
 // 判断工人是否与建筑碰撞
 private collidesWithBuildings(
@@ -164,31 +183,59 @@ private collidesWithBuildings(
   delta: number,
   buildings: Phaser.Geom.Rectangle[]
 ) {
-
+  // 没有移动目标
   if (!this.target) return;
 
+  // 当前应该前往的路径节点
+  const currentPoint = this.movePath.length > 0
+    ? this.movePath[this.pathIndex]
+    : this.target;
+
+  if (!currentPoint) {
+    this.target = null;
+    return;
+  }
+
+  // 计算距离当前路径节点的距离
   const distance = Phaser.Math.Distance.Between(
     this.x,
     this.y,
-    this.target.x,
-    this.target.y
+    currentPoint.x,
+    currentPoint.y
   );
 
-  // 已经到达目标
+  // 到达当前节点
   if (distance < 3) {
-    this.setPosition(this.target.x, this.target.y);
+
+    this.setPosition(
+      currentPoint.x,
+      currentPoint.y
+    );
+
+    // 如果还有下一个路径节点
+    if (this.movePath.length > 0) {
+      this.pathIndex++;
+
+      // 所有节点都已经走完
+      if (this.pathIndex >= this.movePath.length) {
+        this.movePath = [];
+        this.pathIndex = 0;
+        this.target = null;
+      }
+
+      return;
+    }
+
+    // 普通直线移动已经到达目标
     this.target = null;
     return;
   }
 
   const radius = 13;
 
-  // 减速开始距离
-  const brakingDistance = 36;
-
+  // 计算距离最近建筑的净空距离
   let nearestClearance = Infinity;
 
-  // 计算工人距离最近建筑的净空距离
   for (const building of buildings) {
 
     const nearestX = Phaser.Math.Clamp(
@@ -218,26 +265,31 @@ private collidesWithBuildings(
     );
   }
 
-  // 已经碰到建筑，立即停止
+  // 如果已经碰到建筑，停止移动
   if (nearestClearance <= 0) {
     this.target = null;
+    this.movePath = [];
+    this.pathIndex = 0;
     return;
   }
 
-  // 根据距离逐渐减速
-  let speedFactor = 1;
+  // 根据建筑距离计算速度
+  let actualSpeed = this.speed;
 
-  if (nearestClearance < brakingDistance) {
+  if (nearestClearance < this.brakingDistance) {
 
-    speedFactor = Phaser.Math.Clamp(
-      nearestClearance / brakingDistance,
-      0.12,
+    const speedRatio = Phaser.Math.Clamp(
+      nearestClearance / this.brakingDistance,
+      0,
       1
     );
+
+    // 在最低速度与正常速度之间平滑变化
+    actualSpeed = this.minSpeed +
+      (this.speed - this.minSpeed) * speedRatio;
   }
 
-  const actualSpeed = this.speed * speedFactor;
-
+  // 计算这一帧可以移动的距离
   const step = Math.min(
     actualSpeed * delta / 1000,
     distance
@@ -246,14 +298,14 @@ private collidesWithBuildings(
   const angle = Phaser.Math.Angle.Between(
     this.x,
     this.y,
-    this.target.x,
-    this.target.y
+    currentPoint.x,
+    currentPoint.y
   );
 
   const nextX = this.x + Math.cos(angle) * step;
   const nextY = this.y + Math.sin(angle) * step;
 
-  // 检查下一步是否会撞上建筑
+  // 防止移动过程中穿过建筑
   if (
     this.collidesWithBuildings(
       nextX,
@@ -261,9 +313,9 @@ private collidesWithBuildings(
       buildings
     )
   ) {
-
-    // 碰撞后取消移动命令
     this.target = null;
+    this.movePath = [];
+    this.pathIndex = 0;
     return;
   }
 
