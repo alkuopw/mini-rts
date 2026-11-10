@@ -3,6 +3,13 @@ import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config';
 import Unit from '../entities/Unit';
 import WeaponPickup from '../entities/WeaponPickup';
+interface BuildingFootprint {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  type: string;
+}
 export default class BattleScene extends Phaser.Scene {
   private mapContainer!: Phaser.GameObjects.Container;
 
@@ -34,6 +41,8 @@ private pinchAnchorY = 0;
   private units: Unit[] = [];
   private selectedUnit: Unit | null = null;
   private weaponPickups: WeaponPickup[] = [];
+  // 所有建筑的占地记录
+  private buildingFootprints: BuildingFootprint[] = [];
   constructor() {
     super('BattleScene');
   }
@@ -89,6 +98,8 @@ private pinchAnchorY = 0;
 
     // 蓝队基地
     this.createBase(56, 56, colors.blue, 'BLUE BASE');
+    // 随机生成六个工厂
+    this.createRandomFactories(6);
     // 创建红队工人
     this.createUnit(6, 9, 'red');
 
@@ -469,58 +480,188 @@ this.input.on(
   }
 
   private createBase(
-    x: number,
-    y: number,
-    color: number,
-    label: string
+  x: number,
+  y: number,
+  color: number,
+  label: string
+) {
+  this.createBuilding(
+    x,
+    y,
+    4,
+    4,
+    color,
+    label,
+    'base'
+  );
+}
+  private createBuilding(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: number,
+  label: string,
+  type: string
+) {
+  const { tileSize } = GAME_CONFIG;
+
+  const building = this.add.graphics();
+
+  // 建筑底部阴影
+  building.fillStyle(0x222222, 0.5);
+  building.fillRoundedRect(
+    x * tileSize,
+    y * tileSize,
+    width * tileSize,
+    height * tileSize,
+    8
+  );
+
+  // 建筑主体
+  building.fillStyle(color, 1);
+  building.fillRoundedRect(
+    x * tileSize + 6,
+    y * tileSize + 6,
+    width * tileSize - 12,
+    height * tileSize - 12,
+    6
+  );
+
+  // 建筑中央标志
+  building.fillStyle(0xffffff, 0.8);
+  building.fillRect(
+    x * tileSize + width * tileSize / 2 - 12,
+    y * tileSize + height * tileSize / 2 - 12,
+    24,
+    24
+  );
+
+  this.mapContainer.add(building);
+
+  // 建筑名称
+  const text = this.add.text(
+    x * tileSize,
+    y * tileSize - 22,
+    label,
+    {
+      fontSize: '12px',
+      color: '#ffffff',
+      backgroundColor: '#202020',
+      padding: { x: 4, y: 3 },
+    }
+  );
+
+  this.mapContainer.add(text);
+
+  // 登记建筑占地
+  this.buildingFootprints.push({
+    x,
+    y,
+    width,
+    height,
+    type
+  });
+}
+private isBuildingAreaFree(
+  x: number,
+  y: number,
+  width: number,
+  height: number
+): boolean {
+
+  // 检查是否超出地图范围
+  const { mapWidth, mapHeight } = GAME_CONFIG;
+
+  if (
+    x < 0 ||
+    y < 0 ||
+    x + width > mapWidth ||
+    y + height > mapHeight
   ) {
-    const { tileSize } = GAME_CONFIG;
-
-    const base = this.add.graphics();
-
-    base.fillStyle(0x222222, 0.5);
-    base.fillRoundedRect(
-      x * tileSize,
-      y * tileSize,
-      tileSize * 4,
-      tileSize * 4,
-      8
-    );
-
-    base.fillStyle(color, 1);
-    base.fillRoundedRect(
-      x * tileSize + 6,
-      y * tileSize + 6,
-      tileSize * 4 - 12,
-      tileSize * 4 - 12,
-      6
-    );
-
-    base.fillStyle(0xffffff, 0.8);
-    base.fillRect(
-      x * tileSize + 40,
-      y * tileSize + 40,
-      48,
-      48
-    );
-
-    this.mapContainer.add(base);
-
-    const text = this.add.text(
-      x * tileSize,
-      y * tileSize - 22,
-      label,
-      {
-        fontSize: '12px',
-        color: '#ffffff',
-        backgroundColor: '#202020',
-        padding: { x: 4, y: 3 },
-      }
-    );
-
-    this.mapContainer.add(text);
+    return false;
   }
-  
+
+  // 检查是否与已有建筑重叠
+  for (const building of this.buildingFootprints) {
+
+    const overlap =
+      x < building.x + building.width &&
+      x + width > building.x &&
+      y < building.y + building.height &&
+      y + height > building.y;
+
+    if (overlap) {
+      return false;
+    }
+  }
+
+  return true;
+}
+private createRandomFactories(count: number) {
+
+  const { mapWidth, mapHeight } = GAME_CONFIG;
+
+  const factoryWidth = 3;
+  const factoryHeight = 3;
+
+  // 地图边缘至少保留两格
+  const margin = 2;
+
+  let created = 0;
+
+  // 防止地图空间不足时无限循环
+  let attempts = 0;
+  const maxAttempts = 1000;
+
+  while (
+    created < count &&
+    attempts < maxAttempts
+  ) {
+
+    attempts++;
+
+    // 随机生成左上角方格坐标
+    const x = Phaser.Math.Between(
+      margin,
+      mapWidth - margin - factoryWidth
+    );
+
+    const y = Phaser.Math.Between(
+      margin,
+      mapHeight - margin - factoryHeight
+    );
+
+    // 检查位置是否合法
+    if (
+      !this.isBuildingAreaFree(
+        x,
+        y,
+        factoryWidth,
+        factoryHeight
+      )
+    ) {
+      continue;
+    }
+
+    // 创建工厂
+    this.createBuilding(
+      x,
+      y,
+      factoryWidth,
+      factoryHeight,
+      0x9a9a48,
+      'FACTORY',
+      'factory'
+    );
+
+    created++;
+  }
+
+  console.log(
+    `成功生成 ${created}/${count} 个工厂`
+  );
+}
   private createUnit(
     gridX: number,
     gridY: number,
