@@ -12,6 +12,17 @@ export default class Unit extends Phaser.GameObjects.Container {
   private selected = false;
   private armed = false;
   private target: Phaser.Math.Vector2 | null = null;
+  // A* 生成的移动路径
+private movePath: Phaser.Math.Vector2[] = [];
+
+// 当前正在前往的路径节点
+private pathIndex = 0;
+
+// 最低移动速度
+private minSpeed = 30;
+
+// 开始减速的距离
+private brakingDistance = 48;
 
   private unitGraphics: Phaser.GameObjects.Graphics;
   private selectionRing: Phaser.GameObjects.Graphics;
@@ -106,6 +117,10 @@ export default class Unit extends Phaser.GameObjects.Container {
 
   setMoveTarget(x: number, y: number) {
   this.target = new Phaser.Math.Vector2(x, y);
+}
+setMovePath(path: Phaser.Math.Vector2[]) {
+  this.movePath = path;
+  this.pathIndex = 0;
 }
 // 判断工人是否与建筑碰撞
 private collidesWithBuildings(

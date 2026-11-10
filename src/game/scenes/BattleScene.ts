@@ -608,6 +608,30 @@ private isBuildingAreaFree(
 
   return true;
 }
+private isWalkable(x: number, y: number): boolean {
+
+  const { mapWidth, mapHeight } = GAME_CONFIG;
+
+  if (
+    x < 0 ||
+    y < 0 ||
+    x >= mapWidth ||
+    y >= mapHeight
+  ) {
+    return false;
+  }
+
+  return !this.buildingFootprints.some(building => {
+
+    return (
+      x >= building.x &&
+      x < building.x + building.width &&
+      y >= building.y &&
+      y < building.y + building.height
+    );
+
+  });
+}
 private createRandomFactories(count: number) {
 
   const { mapWidth, mapHeight } = GAME_CONFIG;
