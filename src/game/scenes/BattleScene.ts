@@ -41,6 +41,8 @@ private pinchAnchorY = 0;
   private units: Unit[] = [];
   private selectedUnit: Unit | null = null;
   private weaponPickups: WeaponPickup[] = [];
+  // 所有建筑的碰撞范围
+private buildingObstacles: Phaser.Geom.Rectangle[] = [];
   // 所有建筑的占地记录
   private buildingFootprints: BuildingFootprint[] = [];
   constructor() {
