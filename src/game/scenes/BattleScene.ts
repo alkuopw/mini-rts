@@ -540,7 +540,15 @@ this.input.on(
   );
 
   this.mapContainer.add(building);
-
+// 登记建筑碰撞范围
+this.buildingObstacles.push(
+  new Phaser.Geom.Rectangle(
+    x * tileSize,
+    y * tileSize,
+    width * tileSize,
+    height * tileSize
+  )
+);
   // 建筑名称
   const text = this.add.text(
     x * tileSize,
@@ -702,7 +710,10 @@ private createWeaponPickup(gridX: number, gridY: number) {
 
   update(_time: number, delta: number) {
   for (const unit of this.units) {
-    unit.updateUnit(delta);
+    unit.updateUnit(
+  delta,
+  this.buildingObstacles
+);
 
     // 已经持枪的单位不再拾取
     if (unit.hasWeapon()) continue;
