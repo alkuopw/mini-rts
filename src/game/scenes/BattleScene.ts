@@ -102,6 +102,8 @@ private buildingObstacles: Phaser.Geom.Rectangle[] = [];
     this.createBase(56, 56, colors.blue, 'BLUE BASE');
     // 随机生成六个工厂
     this.createRandomFactories(6);
+    // 随机生成城市建筑
+this.createRandomCityBuildings();
     // 创建红队工人
     this.createUnit(6, 9, 'red');
 
@@ -912,6 +914,133 @@ private createRandomFactories(count: number) {
     `成功生成 ${created}/${count} 个工厂`
   );
 }
+
+private createRandomCityBuildings() {
+
+  // 所有城市建筑的配置
+  const buildings = [
+    {
+      type: 'school',
+      label: 'SCHOOL',
+      count: 6,
+      width: 4,
+      height: 3,
+      color: 0x3979c8
+    },
+    {
+      type: 'police',
+      label: 'POLICE',
+      count: 4,
+      width: 3,
+      height: 3,
+      color: 0x183b70
+    },
+    {
+      type: 'apartment',
+      label: 'APARTMENT',
+      count: 8,
+      width: 3,
+      height: 4,
+      color: 0x888888
+    },
+    {
+      type: 'basement',
+      label: 'BASEMENT',
+      count: 3,
+      width: 2,
+      height: 2,
+      color: 0x454545
+    },
+    {
+      type: 'bank',
+      label: 'BANK',
+      count: 3,
+      width: 3,
+      height: 3,
+      color: 0xd4a52c
+    },
+    {
+      type: 'company',
+      label: 'COMPANY',
+      count: 5,
+      width: 4,
+      height: 3,
+      color: 0x328c91
+    },
+    {
+      type: 'government',
+      label: 'GOVERNMENT',
+      count: 1,
+      width: 5,
+      height: 4,
+      color: 0x9b3939
+    }
+  ];
+
+  const { mapWidth, mapHeight } = GAME_CONFIG;
+
+  // 距离地图边缘至少保留两格
+  const margin = 2;
+
+  // 遍历所有建筑类型
+  for (const config of buildings) {
+
+    let created = 0;
+    let attempts = 0;
+
+    // 防止地图空间不足时无限循环
+    const maxAttempts = 2000;
+
+    while (
+      created < config.count &&
+      attempts < maxAttempts
+    ) {
+
+      attempts++;
+
+      // 随机选择建筑左上角坐标
+      const x = Phaser.Math.Between(
+        margin,
+        mapWidth - margin - config.width
+      );
+
+      const y = Phaser.Math.Between(
+        margin,
+        mapHeight - margin - config.height
+      );
+
+      // 检查建筑是否越界或与其他建筑重叠
+      if (
+        !this.isBuildingAreaFree(
+          x,
+          y,
+          config.width,
+          config.height
+        )
+      ) {
+        continue;
+      }
+
+      // 创建建筑
+      this.createBuilding(
+        x,
+        y,
+        config.width,
+        config.height,
+        config.color,
+        config.label,
+        config.type
+      );
+
+      created++;
+    }
+
+    console.log(
+      `${config.label}: 成功生成 ${created}/${config.count}`
+    );
+  }
+}
+
   private createUnit(
     gridX: number,
     gridY: number,
