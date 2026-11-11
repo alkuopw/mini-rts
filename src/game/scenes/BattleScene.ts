@@ -2,6 +2,9 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config';
 import Unit from '../entities/Unit';
+import type { UnitTeam } from '../entities/Unit';
+import Economy from '../systems/Economy';
+
 import WeaponPickup from '../entities/WeaponPickup';
 interface BuildingFootprint {
   x: number;
@@ -40,6 +43,11 @@ private pinchAnchorX = 0;
 private pinchAnchorY = 0;
   private units: Unit[] = [];
   private selectedUnit: Unit | null = null;
+  // 红蓝双方独立的经济账户
+private economies!: Record<UnitTeam, Economy>;
+
+// 资金显示文本
+private economyTexts!: Record<UnitTeam, Phaser.GameObjects.Text>;
   private weaponPickups: WeaponPickup[] = [];
   // 所有建筑的碰撞范围
 private buildingObstacles: Phaser.Geom.Rectangle[] = [];
@@ -48,8 +56,57 @@ private buildingObstacles: Phaser.Geom.Rectangle[] = [];
   constructor() {
     super('BattleScene');
   }
+private updateEconomyHud() {
+  this.economyTexts.red.setText(
+    `RED MONEY: $${this.economies.red.getBalance()}`
+  );
 
+  this.economyTexts.blue.setText(
+    `BLUE MONEY: $${this.economies.blue.getBalance()}`
+  );
+}
   create() {
+    // 初始化红蓝双方资金
+this.economies = {
+  red: new Economy(2000),
+  blue: new Economy(2000)
+};
+// 红队资金
+const redMoneyText = this.add.text(
+  this.scale.width - 16,
+  16,
+  '',
+  {
+    fontSize: '16px',
+    color: '#ff7777',
+    fontStyle: 'bold',
+    backgroundColor: '#202020',
+    padding: { x: 8, y: 6 }
+  }
+).setOrigin(1, 0).setScrollFactor(0).setDepth(10);
+
+// 蓝队资金
+const blueMoneyText = this.add.text(
+  this.scale.width - 16,
+  52,
+  '',
+  {
+    fontSize: '16px',
+    color: '#77aaff',
+    fontStyle: 'bold',
+    backgroundColor: '#202020',
+    padding: { x: 8, y: 6 }
+  }
+).setOrigin(1, 0).setScrollFactor(0).setDepth(10);
+
+// 保存资金显示对象
+this.economyTexts = {
+  red: redMoneyText,
+  blue: blueMoneyText
+};
+
+// 更新资金显示
+this.updateEconomyHud();
     const { mapWidth, mapHeight, tileSize, colors } = GAME_CONFIG;
 
     this.cameras.main.setBackgroundColor(colors.background);
